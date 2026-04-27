@@ -9,6 +9,8 @@ Create table Students (
 
 Insert into Students
 Values('2026ABCDEF', 'Alexander', 'Edmonds', 'aedmonds');
+Insert into Students
+Values('2026ZYXWVU', 'Spongebob', 'Squarepants', 'ssquarepants');
 
 select * from Students;
 
