@@ -265,3 +265,113 @@ select * from grading_category;
 select * from assignment;
 select * from score;
 
+-- ============================================================
+--  SECTION 5: QUERIES
+-- ============================================================
+
+-- ------------------------------------------------------------
+--  Q1: List all students enrolled in a given course
+-- ------------------------------------------------------------
+SELECT
+    s.student_id,
+    s.first_name || ' ' || s.last_name  AS student_name,
+    s.email
+FROM enrollment e
+JOIN student s ON s.student_id = e.student_id
+JOIN course  c ON c.course_id  = e.course_id
+WHERE c.course_number = '4480'
+  AND c.semester      = 'Spring'
+  AND c.year          = '2026'
+ORDER BY s.last_name;
+
+-- ------------------------------------------------------------
+--  Q2: All assignments for a course with category info
+-- ------------------------------------------------------------
+SELECT
+    gc.category_label  AS category,
+    gc.weight_pct      AS weight,
+    a.title            AS assignment,
+    a.max_points,
+    a.due_date
+FROM assignment       a
+JOIN grading_category gc ON gc.category_id = a.category_id
+JOIN course           c  ON c.course_id    = gc.course_id
+WHERE c.course_number = '4480'
+ORDER BY gc.category_label, a.due_date;
+
+-- ------------------------------------------------------------
+--  Q3: Final grade per student in a course
+--  Oracle supports CTEs (WITH clause) in SELECT statements
+-- ------------------------------------------------------------
+WITH category_scores AS (
+    SELECT
+        e.enrollment_id,
+        s.first_name || ' ' || s.last_name  AS student_name,
+        gc.category_id,
+        gc.category_label,
+        gc.weight_pct,
+        NVL(SUM(CASE WHEN sc.excused = 0 THEN sc.points_earned ELSE 0 END), 0) AS total_earned,
+        NVL(SUM(CASE WHEN sc.excused = 0 THEN a.max_points     ELSE 0 END), 0) AS total_max
+    FROM enrollment       e
+    JOIN student          s   ON s.student_id    = e.student_id
+    JOIN grading_category gc  ON gc.course_id    = e.course_id
+    JOIN assignment       a   ON a.category_id   = gc.category_id
+    LEFT JOIN score       sc  ON sc.enrollment_id = e.enrollment_id
+                             AND sc.assignment_id  = a.assignment_id
+    WHERE e.course_id = 'C000000001'
+    GROUP BY e.enrollment_id, s.first_name, s.last_name,
+             gc.category_id, gc.category_label, gc.weight_pct
+),
+weighted AS (
+    SELECT
+        enrollment_id,
+        student_name,
+        CASE WHEN total_max > 0
+             THEN ROUND((total_earned / total_max) * weight_pct, 2)
+             ELSE 0
+        END AS weighted_contribution
+    FROM category_scores
+)
+SELECT
+    student_name,
+    ROUND(SUM(weighted_contribution), 2) AS final_grade,
+    CASE
+        WHEN SUM(weighted_contribution) >= 90 THEN 'A'
+        WHEN SUM(weighted_contribution) >= 80 THEN 'B'
+        WHEN SUM(weighted_contribution) >= 70 THEN 'C'
+        WHEN SUM(weighted_contribution) >= 60 THEN 'D'
+        ELSE 'F'
+    END AS letter_grade
+FROM weighted
+GROUP BY enrollment_id, student_name
+ORDER BY final_grade DESC;
+
+-- ------------------------------------------------------------
+--  Q4: Update grade_cached for all students
+--  Oracle UPDATE uses a subquery with MERGE or correlated UPDATE
+-- ------------------------------------------------------------
+UPDATE enrollment e
+SET e.grade_cached = (
+    SELECT ROUND(SUM(
+        CASE WHEN total_max > 0
+             THEN (total_earned / total_max) * weight_pct
+             ELSE 0
+        END
+    ), 2)
+    FROM (
+        SELECT
+            e2.enrollment_id,
+            gc.weight_pct,
+            NVL(SUM(CASE WHEN sc.excused = 0 THEN sc.points_earned ELSE 0 END), 0) AS total_earned,
+            NVL(SUM(CASE WHEN sc.excused = 0 THEN a.max_points     ELSE 0 END), 0) AS total_max
+        FROM enrollment       e2
+        JOIN grading_category gc ON gc.course_id    = e2.course_id
+        JOIN assignment       a  ON a.category_id   = gc.category_id
+        LEFT JOIN score       sc ON sc.enrollment_id = e2.enrollment_id
+                                AND sc.assignment_id  = a.assignment_id
+        GROUP BY e2.enrollment_id, gc.category_id, gc.weight_pct
+    ) cs
+    WHERE cs.enrollment_id = e.enrollment_id
+);
+
+COMMIT;
