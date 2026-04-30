@@ -1,17 +1,36 @@
---===================================--
------------ Dropping Tables -----------
---===================================--
-DROP TABLE student;
-DROP TABLE score;
-DROP TABLE assignment;
-DROP TABLE grading_category;
-DROP TABLE enrollment;
-DROP TABLE course;
+--===================================================================--
+----------- Dropping Tables/Sequences, Casading Constraints -----------
+--===================================================================--
+DROP TABLE score             CASCADE CONSTRAINTS;
+DROP TABLE assignment        CASCADE CONSTRAINTS;
+DROP TABLE grading_category  CASCADE CONSTRAINTS;
+DROP TABLE enrollment        CASCADE CONSTRAINTS;
+DROP TABLE course            CASCADE CONSTRAINTS;
+DROP TABLE student           CASCADE CONSTRAINTS;
+
+DROP SEQUENCE course_seq;
+DROP SEQUENCE enrollment_seq;
+DROP SEQUENCE category_seq;
+DROP SEQUENCE assignment_seq;
+DROP SEQUENCE score_seq;
+
+
+
+--======================================--
+----------- Creating Sequences -----------
+--======================================--
+CREATE SEQUENCE course_seq      START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE enrollment_seq  START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE category_seq    START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE assignment_seq  START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE score_seq       START WITH 1 INCREMENT BY 1;
+
 
 
 --===================================--
 ----------- Creating Tables -----------
 --===================================--
+
 ----- Student Table -----
 CREATE TABLE student (
     student_id  VARCHAR(10)  PRIMARY KEY NOT NULL,
@@ -20,182 +39,229 @@ CREATE TABLE student (
     email       VARCHAR(20)  NOT NULL UNIQUE
 );
 
+
+
 ----- Course Table -----
-CREATE SEQUENCE course_seq START 1;
 CREATE TABLE course (
-    course_id      VARCHAR(10)  PRIMARY KEY NOT NULL
-                                DEFAULT 'C' || LPAD(nextval('course_seq')::TEXT, 9, '0'),
+    course_id      VARCHAR(10)  DEFAULT 'C' || LPAD(course_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
     department     VARCHAR(10)  NOT NULL,
     course_number  VARCHAR(6)   NOT NULL UNIQUE,
     course_name    VARCHAR(30)  NOT NULL UNIQUE,
-    semester       VARCHAR(10)  NOT NULL CHECK (semester IN ('Spring', 'Summer', 'Fall')),
-    academic_year           VARCHAR(4)   NOT NULL
+    semester       VARCHAR(10)  NOT NULL CHECK (semester IN ('Spring','Summer','Fall')),
+    year           VARCHAR(4)   NOT NULL
 );
+
+
 
 ----- Enrollment Table -----
-CREATE SEQUENCE enrollment_seq START 1;
 CREATE TABLE enrollment (
-    enrollment_id  VARCHAR(10)  PRIMARY KEY NOT NULL
-                                DEFAULT 'E' || LPAD(nextval('enrollment_seq')::TEXT, 9, '0'),
+    enrollment_id  VARCHAR(10)  DEFAULT 'E' || LPAD(enrollment_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
     student_id     VARCHAR(10)  NOT NULL REFERENCES student(student_id)  ON DELETE CASCADE,
     course_id      VARCHAR(10)  NOT NULL REFERENCES course(course_id)    ON DELETE CASCADE,
-    grade_cached   DECIMAL(5,2),
+    grade_cached   NUMBER(5,2),
     UNIQUE (student_id, course_id)
 );
--- Trigger: enforce max 5 students per course
-CREATE OR REPLACE FUNCTION check_enrollment_limit()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (SELECT COUNT(*) FROM enrollment WHERE course_id = NEW.course_id) >= 5 THEN
-        RAISE EXCEPTION
-            'Course % already has 5 enrolled students (maximum reached).', NEW.course_id;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
- 
-CREATE TRIGGER trg_enrollment_limit
-BEFORE INSERT ON enrollment
-FOR EACH ROW EXECUTE FUNCTION check_enrollment_limit();
+
+
 
 ----- Grading Category Table -----
-CREATE SEQUENCE category_seq START 1;
- 
 CREATE TABLE grading_category (
-    category_id     VARCHAR(10)   PRIMARY KEY NOT NULL
-                                  DEFAULT 'GC' || LPAD(nextval('category_seq')::TEXT, 8, '0'),
-    course_id       VARCHAR(10)   NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
-    category_label  VARCHAR(20)   NOT NULL,
-    weight_pct      DECIMAL(5,2)  NOT NULL CHECK (weight_pct > 0 AND weight_pct <= 100),
+    category_id     VARCHAR(10)  DEFAULT 'GC' || LPAD(category_seq.NEXTVAL, 8, '0') PRIMARY KEY NOT NULL,
+    course_id       VARCHAR(10)  NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+    category_label  VARCHAR(20)  NOT NULL,
+    weight_pct      NUMBER(5,2)   NOT NULL CHECK (weight_pct > 0 AND weight_pct <= 100),
     UNIQUE (course_id, category_label)
 );
  
--- Trigger: category weights for a course must not exceed 100
-CREATE OR REPLACE FUNCTION check_category_weight_sum()
-RETURNS TRIGGER AS $$
-DECLARE
-    total DECIMAL(6,2);
-BEGIN
-    SELECT COALESCE(SUM(weight_pct), 0)
-      INTO total
-      FROM grading_category
-     WHERE course_id   = NEW.course_id
-       AND category_id <> COALESCE(NEW.category_id, '');
- 
-    total := total + NEW.weight_pct;
- 
-    IF total > 100.00 THEN
-        RAISE EXCEPTION
-            'Category weights for course % would total %%, exceeding 100%%.',
-            NEW.course_id, total;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
- 
-CREATE TRIGGER trg_category_weight
-BEFORE INSERT OR UPDATE ON grading_category
-FOR EACH ROW EXECUTE FUNCTION check_category_weight_sum();
+
 
 ----- Assignment Table -----
-CREATE SEQUENCE assignment_seq START 1;
 CREATE TABLE assignment (
-    assignment_id  VARCHAR(10)   PRIMARY KEY NOT NULL
-                                 DEFAULT 'A' || LPAD(nextval('assignment_seq')::TEXT, 9, '0'),
-    category_id    VARCHAR(10)   NOT NULL REFERENCES grading_category(category_id) ON DELETE CASCADE,
-    title          VARCHAR(40)   NOT NULL,
-    max_points     DECIMAL(6,2)  NOT NULL CHECK (max_points > 0),
+    assignment_id  VARCHAR(10)  DEFAULT 'A' || LPAD(assignment_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
+    category_id    VARCHAR(10)  NOT NULL REFERENCES grading_category(category_id) ON DELETE CASCADE,
+    title          VARCHAR(40)  NOT NULL,
+    max_points     NUMBER(6,2)  NOT NULL CHECK (max_points > 0),
     due_date       DATE
 );
 
+
+
 ----- Score Table -----
-CREATE SEQUENCE score_seq START 1;
- 
 CREATE TABLE score (
-    score_id       VARCHAR(10)   PRIMARY KEY
-                                 DEFAULT 'S' || LPAD(nextval('score_seq')::TEXT, 9, '0'),
-    enrollment_id  VARCHAR(10)   NOT NULL REFERENCES enrollment(enrollment_id)  ON DELETE CASCADE,
-    assignment_id  VARCHAR(10)   NOT NULL REFERENCES assignment(assignment_id)  ON DELETE CASCADE,
-    points_earned  DECIMAL(6,2)  NOT NULL CHECK (points_earned >= 0),
-    excused        INT           NOT NULL DEFAULT 0 CHECK (excused IN (0, 1)),
+    score_id       VARCHAR2(10)  DEFAULT 'S' || LPAD(score_seq.NEXTVAL, 9, '0') PRIMARY KEY,
+    enrollment_id  VARCHAR2(10)  NOT NULL REFERENCES enrollment(enrollment_id)  ON DELETE CASCADE,
+    assignment_id  VARCHAR2(10)  NOT NULL REFERENCES assignment(assignment_id)  ON DELETE CASCADE,
+    points_earned  NUMBER(6,2)   NOT NULL CHECK (points_earned >= 0),
+    excused        NUMBER(1)     DEFAULT 0 NOT NULL CHECK (excused IN (0,1)),
     UNIQUE (enrollment_id, assignment_id)
 );
  
--- Trigger: points_earned cannot exceed assignment max_points (unless excused)
-CREATE OR REPLACE FUNCTION check_score_max()
-RETURNS TRIGGER AS $$
-DECLARE
-    max_pts DECIMAL(6,2);
-BEGIN
-    SELECT max_points INTO max_pts
-      FROM assignment
-     WHERE assignment_id = NEW.assignment_id;
- 
-    IF NEW.excused = 0 AND NEW.points_earned > max_pts THEN
-        RAISE EXCEPTION
-            'points_earned (%) cannot exceed max_points (%) for assignment %.',
-            NEW.points_earned, max_pts, NEW.assignment_id;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
- 
-CREATE TRIGGER trg_score_max
-BEFORE INSERT OR UPDATE ON score
-FOR EACH ROW EXECUTE FUNCTION check_score_max();
+
 
 --=========================================--
 ----------- Inserting Sample Data -----------
 --=========================================--
+
 ----- Students -----
-Insert into student
-Values('2026ABCDEF', 'Lebron', 'James', 'ljames');
-Insert into student
-Values('2029ZYXWVU', 'Spongebob', 'Squarepants', 'ssquarepants');
-Insert into student
-Values('2028HDJILA', 'Paul', 'Atreides', 'patreides');
-Insert into student
-Values('2025LKCAYH', 'Taylor', 'Swift', 'tswift');
+INSERT INTO student VALUES ('2026ABCDEF', 'Lebron', 'James', 'ljames');
+INSERT INTO student VALUES ('2029ZYXWVU', 'Spongebob', 'Squarepants', 'ssquarepants');
+INSERT INTO student VALUES ('2028HDJILA', 'Paul', 'Atreides', 'patreides');
+INSERT INTO student VALUES ('2025LKCAYH', 'Taylor', 'Swift', 'tswift');
+
+
 
 ----- Courses -----
-INSERT INTO course (department, course_number, course_name, semester, year) VALUES
-    ('CSC', '4480', 'Database Systems', 'Spring', '2026'),
-    ('HIS', '2200', 'History of Ancient Rome', 'Fall', '2025'),
-    ('MAT', '3150', 'Calculus III',  'Spring', '2026');
-    
------ Enrollments -----
-INSERT INTO enrollment (student_id, course_id) VALUES
-    -- CSC 4480
-    ('2026ABCDEF', 'C000000001'),   -- Lebron
-    ('2029ZYXWVU', 'C000000001'),   -- Spongebob
-    ('2028HDJILA', 'C000000001'),   -- Paul
-    ('2025LKCAYH', 'C000000001'),   -- Taylor
-    -- HIS 2200
-    ('2026ABCDEF', 'C000000002'),   -- Lebron
-    ('2029ZYXWVU', 'C000000002'),   -- Spongebob
-    ('2028HDJILA', 'C000000002'),   -- Paul
-    ('2025LKCAYH', 'C000000002'),   -- Taylor
-    -- MAT 3150
-    ('2026ABCDEF', 'C000000003'),   -- Lebron
-    ('2029ZYXWVU', 'C000000003'),   -- Spongebob
-    ('2028HDJILA', 'C000000003'),   -- Paul
-    ('2025LKCAYH', 'C000000003');   -- Taylor
-    
------ Grading Catergories -----    
-INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES
-    -- CSC 4480
-    ('C000000001', 'Participation', 10),
-    ('C000000001', 'Homework',      20),
-    ('C000000001', 'Tests',         50),
-    ('C000000001', 'Projects',      20),
-    -- HIS 2200
-    ('C000000002', 'Participation', 20),
-    ('C000000002', 'Essays',        30),
-    ('C000000002', 'Exams',         50),
-    -- MAT 3150
-    ('C000000003', 'Homework',      10),
-    ('C000000003', 'Quizzes',       40),
-    ('C000000003', 'Final Exam',    50);
+INSERT INTO course (department, course_number, course_name, semester, year)
+VALUES ('CSC', '4480', 'Database Systems', 'Spring', '2026');
 
-select * from Students;
+INSERT INTO course (department, course_number, course_name, semester, year)
+VALUES ('HIS', '2200', 'History of Ancient Rome', 'Fall', '2025');
+
+INSERT INTO course (department, course_number, course_name, semester, year)
+VALUES ('MAT', '3150', 'Calculus III', 'Spring', '2026');
+    
+
+
+----- Enrollments -----
+-- CSC 4480 (C000000001)
+INSERT INTO enrollment (student_id, course_id) VALUES ('2026ABCDEF', 'C000000001');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2029ZYXWVU', 'C000000001');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2028HDJILA', 'C000000001');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2025LKCAYH', 'C000000001');
+
+-- HIS 2200 (C000000002)
+INSERT INTO enrollment (student_id, course_id) VALUES ('2026ABCDEF', 'C000000002');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2029ZYXWVU', 'C000000002');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2028HDJILA', 'C000000002');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2025LKCAYH', 'C000000002');
+
+-- MAT 3150 (C000000003)
+INSERT INTO enrollment (student_id, course_id) VALUES ('2026ABCDEF', 'C000000003');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2029ZYXWVU', 'C000000003');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2028HDJILA', 'C000000003');
+INSERT INTO enrollment (student_id, course_id) VALUES ('2025LKCAYH', 'C000000003');
+    
+
+
+----- Grading Catergories -----    
+
+-- CSC 4480
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000001', 'Participation', 10);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000001', 'Homework', 20);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000001', 'Tests', 50);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000001', 'Projects', 20);
+
+-- HIS 2200
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000002', 'Participation', 20);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000002', 'Essays', 30);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000002', 'Exams', 50);
+
+-- MAT 3150
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000003', 'Homework', 10);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000003', 'Quizzes', 40);
+INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C000000003', 'Final Exam', 50);
+
+
+
+----- Assignments -----
+
+-- CSC 4480
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000001', 'Week 1 Participation', 10, DATE '2026-02-01');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000002', 'Homework 1: Intro to SQL', 50, DATE '2026-02-10');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000003', 'Midterm Exam', 100, DATE '2026-03-10');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000004', 'Final Project', 100, DATE '2026-04-30');
+
+-- HIS 2200
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000005', 'Fall Participation', 20, DATE '2025-12-01');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000006', 'Essay 1', 50, DATE '2025-11-10');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000007', 'Final Exam', 100, DATE '2025-12-10');
+
+-- MAT 3150
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000008', 'Homework 1: Derivatives', 25, DATE '2026-02-04');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000009', 'Quiz 1', 50, DATE '2026-02-18');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000010', 'Exam 1', 100, DATE '2026-02-28');
+
+
+
+----- Scores -----
+
+--- CSC 4480 ---
+-- Lebron (E000000001)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000001', 10);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000002', 48);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000003', 97);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000004', 96);
+
+-- Spongebob (E000000002)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000001', 8);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000002', 37);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000003', 81);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000004', 76);
+
+-- Paul (E000000003)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000001', 9);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000002', 44);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000003', 88);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000004', 89);
+
+-- Taylor (E000000004)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000001', 10);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000002', 47);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000003', 92);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000004', 94);
+
+
+--- HIS 2200 ---
+-- Lebron (E000000005)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000005', 18);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000006', 46);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000007', 88);
+
+-- Spongebob (E000000006)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000005', 14);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000006', 30);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000007', 68);
+
+-- Paul (E000000007)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000005', 17);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000006', 42);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000007', 82);
+
+-- Taylor (E000000008)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000005', 20);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000006', 49);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000007', 96);
+
+
+--- MAT 3150 ---
+-- Lebron (E000000009)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000008', 23);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000009', 45);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000010', 91);
+
+-- Spongebob (E000000010)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000008', 14);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000009', 30);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000010', 55);
+
+-- Paul (E000000011)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000008', 21);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000009', 40);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000010', 80);
+
+-- Taylor (E000000012)
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000008', 24);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000009', 47);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000010', 95);
+
+COMMIT;
+
+
+
+select * from student;
+select * from course;
+select * from enrollment;
+select * from grading_category;
+select * from assignment;
+select * from score;
 
