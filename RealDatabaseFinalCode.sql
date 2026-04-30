@@ -375,3 +375,70 @@ SET e.grade_cached = (
 );
 
 COMMIT;
+
+-- ------------------------------------------------------------
+--  Q5: Full gradebook – every score for a course
+-- ------------------------------------------------------------
+SELECT
+    s.first_name || ' ' || s.last_name  AS student,
+    gc.category_label                   AS category,
+    a.title                             AS assignment,
+    a.max_points,
+    sc.points_earned,
+    sc.excused,
+    ROUND((sc.points_earned / a.max_points) * 100, 1) AS pct
+FROM score            sc
+JOIN enrollment       e   ON e.enrollment_id  = sc.enrollment_id
+JOIN student          s   ON s.student_id     = e.student_id
+JOIN assignment       a   ON a.assignment_id  = sc.assignment_id
+JOIN grading_category gc  ON gc.category_id   = a.category_id
+WHERE e.course_id = 'C000000001'
+ORDER BY s.last_name, gc.category_label, a.due_date;
+
+-- ------------------------------------------------------------
+--  Q6: INSERT – Add a new assignment
+-- ------------------------------------------------------------
+INSERT INTO assignment (category_id, title, max_points, due_date)
+VALUES ('GC00000002', 'HW4 Transactions', 50, DATE '2026-04-18');
+
+COMMIT;
+
+-- ------------------------------------------------------------
+--  Q7: UPDATE – Correct a student score
+-- ------------------------------------------------------------
+UPDATE score
+SET    points_earned = 90
+WHERE  enrollment_id = 'E000000001'
+  AND  assignment_id = 'A000000006';
+
+COMMIT;
+
+-- ------------------------------------------------------------
+--  Q8: UPDATE – Mark an assignment excused for a student
+-- ------------------------------------------------------------
+UPDATE score
+SET    excused = 1
+WHERE  enrollment_id = 'E000000002'
+  AND  assignment_id = 'A000000003';
+
+COMMIT;
+
+-- ------------------------------------------------------------
+--  Q9: DELETE – Drop a student from a course (scores cascade)
+-- ------------------------------------------------------------
+-- DELETE FROM enrollment
+-- WHERE student_id = '2029ZYXWVU'
+--   AND course_id  = 'C000000001';
+-- COMMIT;
+
+-- ------------------------------------------------------------
+--  Q10: Verify category weights sum to 100 for all courses
+-- ------------------------------------------------------------
+SELECT
+    c.department || ' ' || c.course_number  AS course,
+    SUM(gc.weight_pct)                      AS total_weight,
+    CASE WHEN SUM(gc.weight_pct) = 100 THEN 'OK' ELSE 'ERROR' END AS status
+FROM grading_category gc
+JOIN course c ON c.course_id = gc.course_id
+GROUP BY c.course_id, c.department, c.course_number
+ORDER BY course;
