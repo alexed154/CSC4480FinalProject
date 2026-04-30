@@ -186,25 +186,25 @@ INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC000
 ----- Scores -----
 
 --- CSC 4480 ---
--- Lebron (E000000001)
+-- Lebron E000000001
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000001', 10);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000002', 48);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000003', 97);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000004', 96);
 
--- Spongebob (E000000002)
+-- Spongebob E000000002
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000001', 8);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000002', 37);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000003', 81);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000004', 76);
 
--- Paul (E000000003)
+-- Paul E000000003
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000001', 9);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000002', 44);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000003', 88);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000004', 89);
 
--- Taylor (E000000004)
+-- Taylor E000000004
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000001', 10);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000002', 47);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000003', 92);
@@ -212,44 +212,44 @@ INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000
 
 
 --- HIS 2200 ---
--- Lebron (E000000005)
+-- Lebron E000000005
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000005', 18);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000006', 46);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000007', 88);
 
--- Spongebob (E000000006)
+-- Spongebob E000000006
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000005', 14);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000006', 30);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000007', 68);
 
--- Paul (E000000007)
+-- Paul E000000007
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000005', 17);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000006', 42);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000007', 82);
 
--- Taylor (E000000008)
+-- Taylor E000000008
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000005', 20);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000006', 49);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000007', 96);
 
 
 --- MAT 3150 ---
--- Lebron (E000000009)
+-- Lebron E000000009
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000008', 23);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000009', 45);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000010', 91);
 
--- Spongebob (E000000010)
+-- Spongebob E000000010
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000008', 14);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000009', 30);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000010', 55);
 
--- Paul (E000000011)
+-- Paul E000000011
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000008', 21);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000009', 40);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000010', 80);
 
--- Taylor (E000000012)
+-- Taylor E000000012
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000008', 24);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000009', 47);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000010', 95);
@@ -424,15 +424,7 @@ WHERE  enrollment_id = 'E000000002'
 COMMIT;
 
 -- ------------------------------------------------------------
---  Q9: DELETE – Drop a student from a course (scores cascade)
--- ------------------------------------------------------------
--- DELETE FROM enrollment
--- WHERE student_id = '2029ZYXWVU'
---   AND course_id  = 'C000000001';
--- COMMIT;
-
--- ------------------------------------------------------------
---  Q10: Verify category weights sum to 100 for all courses
+--  Q9: Verify category weights sum to 100 for all courses
 -- ------------------------------------------------------------
 SELECT
     c.department || ' ' || c.course_number  AS course,
