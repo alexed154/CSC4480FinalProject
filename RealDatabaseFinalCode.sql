@@ -1,12 +1,10 @@
---===================================================================--
------------ Dropping Tables/Sequences, Casading Constraints -----------
---===================================================================--
-DROP TABLE score             CASCADE CONSTRAINTS;
-DROP TABLE assignment        CASCADE CONSTRAINTS;
-DROP TABLE grading_category  CASCADE CONSTRAINTS;
-DROP TABLE enrollment        CASCADE CONSTRAINTS;
-DROP TABLE course            CASCADE CONSTRAINTS;
-DROP TABLE student           CASCADE CONSTRAINTS;
+----- Dropping Tables/Sequences, Casading Constraints -----
+DROP TABLE score CASCADE CONSTRAINTS;
+DROP TABLE assignment CASCADE CONSTRAINTS;
+DROP TABLE grading_category CASCADE CONSTRAINTS;
+DROP TABLE enrollment CASCADE CONSTRAINTS;
+DROP TABLE course CASCADE CONSTRAINTS;
+DROP TABLE student CASCADE CONSTRAINTS;
 
 DROP SEQUENCE course_seq;
 DROP SEQUENCE enrollment_seq;
@@ -16,14 +14,12 @@ DROP SEQUENCE score_seq;
 
 
 
---======================================--
------------ Creating Sequences -----------
---======================================--
-CREATE SEQUENCE course_seq      START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE enrollment_seq  START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE category_seq    START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE assignment_seq  START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE score_seq       START WITH 1 INCREMENT BY 1;
+----- Creating Sequences -----
+CREATE SEQUENCE course_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE enrollment_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE category_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE assignment_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE score_seq START WITH 1 INCREMENT BY 1;
 
 
 
@@ -33,32 +29,31 @@ CREATE SEQUENCE score_seq       START WITH 1 INCREMENT BY 1;
 
 ----- Student Table -----
 CREATE TABLE student (
-    student_id  VARCHAR(10)  PRIMARY KEY NOT NULL,
-    first_name  VARCHAR(20)  NOT NULL,
-    last_name   VARCHAR(20)  NOT NULL,
-    email       VARCHAR(20)  NOT NULL UNIQUE
+    student_id VARCHAR(10) PRIMARY KEY NOT NULL,
+    first_name VARCHAR(20) NOT NULL,
+    last_name VARCHAR(20) NOT NULL,
+    email VARCHAR(20) NOT NULL UNIQUE
 );
 
 
 
 ----- Course Table -----
 CREATE TABLE course (
-    course_id      VARCHAR(10)  DEFAULT 'C' || LPAD(course_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
-    department     VARCHAR(10)  NOT NULL,
-    course_number  VARCHAR(6)   NOT NULL UNIQUE,
-    course_name    VARCHAR(30)  NOT NULL UNIQUE,
-    semester       VARCHAR(10)  NOT NULL CHECK (semester IN ('Spring','Summer','Fall')),
-    year           VARCHAR(4)   NOT NULL
+    course_id VARCHAR(10) DEFAULT 'C' || LPAD(course_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
+    department VARCHAR(10) NOT NULL,
+    course_number VARCHAR(6) NOT NULL UNIQUE,
+    course_name VARCHAR(30) NOT NULL UNIQUE,
+    semester VARCHAR(10) NOT NULL CHECK (semester IN ('Spring','Summer','Fall')),
+    year VARCHAR(4) NOT NULL
 );
 
 
 
 ----- Enrollment Table -----
 CREATE TABLE enrollment (
-    enrollment_id  VARCHAR(10)  DEFAULT 'E' || LPAD(enrollment_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
-    student_id     VARCHAR(10)  NOT NULL REFERENCES student(student_id)  ON DELETE CASCADE,
-    course_id      VARCHAR(10)  NOT NULL REFERENCES course(course_id)    ON DELETE CASCADE,
-    grade_cached   NUMBER(5,2),
+    enrollment_id VARCHAR(10) DEFAULT 'E' || LPAD(enrollment_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
+    student_id VARCHAR(10) NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+    course_id VARCHAR(10) NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
     UNIQUE (student_id, course_id)
 );
 
@@ -66,10 +61,10 @@ CREATE TABLE enrollment (
 
 ----- Grading Category Table -----
 CREATE TABLE grading_category (
-    category_id     VARCHAR(10)  DEFAULT 'GC' || LPAD(category_seq.NEXTVAL, 8, '0') PRIMARY KEY NOT NULL,
-    course_id       VARCHAR(10)  NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
-    category_label  VARCHAR(20)  NOT NULL,
-    weight_pct      NUMBER(5,2)   NOT NULL CHECK (weight_pct > 0 AND weight_pct <= 100),
+    category_id VARCHAR(10) DEFAULT 'GC' || LPAD(category_seq.NEXTVAL, 8, '0') PRIMARY KEY NOT NULL,
+    course_id VARCHAR(10) NOT NULL REFERENCES course(course_id) ON DELETE CASCADE,
+    category_label VARCHAR(20) NOT NULL,
+    weight_pct NUMBER(5,2) NOT NULL CHECK (weight_pct > 0 AND weight_pct <= 100),
     UNIQUE (course_id, category_label)
 );
  
@@ -77,22 +72,22 @@ CREATE TABLE grading_category (
 
 ----- Assignment Table -----
 CREATE TABLE assignment (
-    assignment_id  VARCHAR(10)  DEFAULT 'A' || LPAD(assignment_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
-    category_id    VARCHAR(10)  NOT NULL REFERENCES grading_category(category_id) ON DELETE CASCADE,
-    title          VARCHAR(40)  NOT NULL,
-    max_points     NUMBER(6,2)  NOT NULL CHECK (max_points > 0),
-    due_date       DATE
+    assignment_id VARCHAR(10) DEFAULT 'A' || LPAD(assignment_seq.NEXTVAL, 9, '0') PRIMARY KEY NOT NULL,
+    category_id VARCHAR(10) NOT NULL REFERENCES grading_category(category_id) ON DELETE CASCADE,
+    title VARCHAR(40) NOT NULL,
+    max_points NUMBER(6,2) NOT NULL CHECK (max_points > 0),
+    due_date DATE
 );
 
 
 
 ----- Score Table -----
 CREATE TABLE score (
-    score_id       VARCHAR2(10)  DEFAULT 'S' || LPAD(score_seq.NEXTVAL, 9, '0') PRIMARY KEY,
-    enrollment_id  VARCHAR2(10)  NOT NULL REFERENCES enrollment(enrollment_id)  ON DELETE CASCADE,
-    assignment_id  VARCHAR2(10)  NOT NULL REFERENCES assignment(assignment_id)  ON DELETE CASCADE,
-    points_earned  NUMBER(6,2)   NOT NULL CHECK (points_earned >= 0),
-    excused        NUMBER(1)     DEFAULT 0 NOT NULL CHECK (excused IN (0,1)),
+    score_id VARCHAR2(10) DEFAULT 'S' || LPAD(score_seq.NEXTVAL, 9, '0') PRIMARY KEY,
+    enrollment_id VARCHAR2(10) NOT NULL REFERENCES enrollment(enrollment_id) ON DELETE CASCADE,
+    assignment_id VARCHAR2(10) NOT NULL REFERENCES assignment(assignment_id) ON DELETE CASCADE,
+    points_earned NUMBER(6,2) NOT NULL CHECK (points_earned >= 0),
+    excused NUMBER(1) DEFAULT 0 NOT NULL CHECK (excused IN (0,1)),
     UNIQUE (enrollment_id, assignment_id)
 );
  
@@ -169,7 +164,7 @@ INSERT INTO grading_category (course_id, category_label, weight_pct) VALUES ('C0
 INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000001', 'Week 1 Participation', 10, DATE '2026-02-01');
 INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000002', 'Homework 1: Intro to SQL', 50, DATE '2026-02-10');
 INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000003', 'Midterm Exam', 100, DATE '2026-03-10');
-INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000004', 'Final Project', 100, DATE '2026-04-30');
+INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000004', 'Final Project', 100, DATE '2026-05-04');
 
 -- HIS 2200
 INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC00000005', 'Fall Participation', 20, DATE '2025-12-01');
@@ -186,25 +181,25 @@ INSERT INTO assignment (category_id, title, max_points, due_date) VALUES ('GC000
 ----- Scores -----
 
 --- CSC 4480 ---
--- Lebron E000000001
+-- Lebron
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000001', 10);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000002', 48);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000003', 97);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000001','A000000004', 96);
 
--- Spongebob E000000002
+-- Spongebob
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000001', 8);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000002', 37);
-INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000003', 81);
+INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000003', 59);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000002','A000000004', 76);
 
--- Paul E000000003
+-- Paul
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000001', 9);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000002', 44);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000003', 88);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000003','A000000004', 89);
 
--- Taylor E000000004
+-- Taylor
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000001', 10);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000002', 47);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000004','A000000003', 92);
@@ -212,44 +207,44 @@ INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000
 
 
 --- HIS 2200 ---
--- Lebron E000000005
+-- Lebron
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000005', 18);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000006', 46);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000005','A000000007', 88);
 
--- Spongebob E000000006
+-- Spongebob
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000005', 14);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000006', 30);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000006','A000000007', 68);
 
--- Paul E000000007
+-- Paul
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000005', 17);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000006', 42);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000007','A000000007', 82);
 
--- Taylor E000000008
+-- Taylor
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000005', 20);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000006', 49);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000008','A000000007', 96);
 
 
 --- MAT 3150 ---
--- Lebron E000000009
+-- Lebron
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000008', 23);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000009', 45);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000009','A000000010', 91);
 
--- Spongebob E000000010
+-- Spongebob
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000008', 14);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000009', 30);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000010','A000000010', 55);
 
--- Paul E000000011
+-- Paul
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000008', 21);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000009', 40);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000011','A000000010', 80);
 
--- Taylor E000000012
+-- Taylor
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000008', 24);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000009', 47);
 INSERT INTO score (enrollment_id, assignment_id, points_earned) VALUES ('E000000012','A000000010', 95);
@@ -258,6 +253,11 @@ COMMIT;
 
 
 
+--=====================================--
+----------- Select Statements -----------
+--=====================================--
+
+----- Prints all tables -----
 select * from student;
 select * from course;
 select * from enrollment;
@@ -265,44 +265,39 @@ select * from grading_category;
 select * from assignment;
 select * from score;
 
--- ============================================================
---  SECTION 5: QUERIES
--- ============================================================
 
--- ------------------------------------------------------------
---  Q1: List all students enrolled in a given course
--- ------------------------------------------------------------
+
+----- List roster of students enrolled in CSC 4480 -----
 SELECT
     s.student_id,
     s.first_name || ' ' || s.last_name  AS student_name,
     s.email
 FROM enrollment e
 JOIN student s ON s.student_id = e.student_id
-JOIN course  c ON c.course_id  = e.course_id
+JOIN course c ON c.course_id  = e.course_id
 WHERE c.course_number = '4480'
-  AND c.semester      = 'Spring'
-  AND c.year          = '2026'
+  AND c.semester = 'Spring'
+  AND c.year = '2026'
 ORDER BY s.last_name;
 
--- ------------------------------------------------------------
---  Q2: All assignments for a course with category info
--- ------------------------------------------------------------
+
+
+----- All assignments for CSC 4480 -----
 SELECT
-    gc.category_label  AS category,
-    gc.weight_pct      AS weight,
-    a.title            AS assignment,
+    gc.category_label AS category,
+    gc.weight_pct AS weight,
+    a.title AS assignment,
     a.max_points,
     a.due_date
-FROM assignment       a
+FROM assignment a
 JOIN grading_category gc ON gc.category_id = a.category_id
-JOIN course           c  ON c.course_id    = gc.course_id
+JOIN course c  ON c.course_id = gc.course_id
 WHERE c.course_number = '4480'
-ORDER BY gc.category_label, a.due_date;
+ORDER BY a.due_date;
 
--- ------------------------------------------------------------
---  Q3: Final grade per student in a course
---  Oracle supports CTEs (WITH clause) in SELECT statements
--- ------------------------------------------------------------
+
+
+----- Prints students' final grades as number and letter -----
 WITH category_scores AS (
     SELECT
         e.enrollment_id,
@@ -311,16 +306,14 @@ WITH category_scores AS (
         gc.category_label,
         gc.weight_pct,
         NVL(SUM(CASE WHEN sc.excused = 0 THEN sc.points_earned ELSE 0 END), 0) AS total_earned,
-        NVL(SUM(CASE WHEN sc.excused = 0 THEN a.max_points     ELSE 0 END), 0) AS total_max
-    FROM enrollment       e
-    JOIN student          s   ON s.student_id    = e.student_id
-    JOIN grading_category gc  ON gc.course_id    = e.course_id
-    JOIN assignment       a   ON a.category_id   = gc.category_id
-    LEFT JOIN score       sc  ON sc.enrollment_id = e.enrollment_id
-                             AND sc.assignment_id  = a.assignment_id
+        NVL(SUM(CASE WHEN sc.excused = 0 THEN a.max_points ELSE 0 END), 0) AS total_max
+    FROM enrollment e
+    JOIN student s ON s.student_id = e.student_id
+    JOIN grading_category gc ON gc.course_id = e.course_id
+    JOIN assignment a ON a.category_id = gc.category_id
+    LEFT JOIN score sc ON sc.enrollment_id = e.enrollment_id AND sc.assignment_id  = a.assignment_id
     WHERE e.course_id = 'C000000001'
-    GROUP BY e.enrollment_id, s.first_name, s.last_name,
-             gc.category_id, gc.category_label, gc.weight_pct
+    GROUP BY e.enrollment_id, s.first_name, s.last_name, gc.category_id, gc.category_label, gc.weight_pct
 ),
 weighted AS (
     SELECT
@@ -346,89 +339,21 @@ FROM weighted
 GROUP BY enrollment_id, student_name
 ORDER BY final_grade DESC;
 
--- ------------------------------------------------------------
---  Q4: Update grade_cached for all students
---  Oracle UPDATE uses a subquery with MERGE or correlated UPDATE
--- ------------------------------------------------------------
-UPDATE enrollment e
-SET e.grade_cached = (
-    SELECT ROUND(SUM(
-        CASE WHEN total_max > 0
-             THEN (total_earned / total_max) * weight_pct
-             ELSE 0
-        END
-    ), 2)
-    FROM (
-        SELECT
-            e2.enrollment_id,
-            gc.weight_pct,
-            NVL(SUM(CASE WHEN sc.excused = 0 THEN sc.points_earned ELSE 0 END), 0) AS total_earned,
-            NVL(SUM(CASE WHEN sc.excused = 0 THEN a.max_points     ELSE 0 END), 0) AS total_max
-        FROM enrollment       e2
-        JOIN grading_category gc ON gc.course_id    = e2.course_id
-        JOIN assignment       a  ON a.category_id   = gc.category_id
-        LEFT JOIN score       sc ON sc.enrollment_id = e2.enrollment_id
-                                AND sc.assignment_id  = a.assignment_id
-        GROUP BY e2.enrollment_id, gc.category_id, gc.weight_pct
-    ) cs
-    WHERE cs.enrollment_id = e.enrollment_id
-);
 
-COMMIT;
 
--- ------------------------------------------------------------
---  Q5: Full gradebook – every score for a course
--- ------------------------------------------------------------
-SELECT
-    s.first_name || ' ' || s.last_name  AS student,
-    gc.category_label                   AS category,
-    a.title                             AS assignment,
-    a.max_points,
-    sc.points_earned,
-    sc.excused,
-    ROUND((sc.points_earned / a.max_points) * 100, 1) AS pct
-FROM score            sc
-JOIN enrollment       e   ON e.enrollment_id  = sc.enrollment_id
-JOIN student          s   ON s.student_id     = e.student_id
-JOIN assignment       a   ON a.assignment_id  = sc.assignment_id
-JOIN grading_category gc  ON gc.category_id   = a.category_id
-WHERE e.course_id = 'C000000001'
-ORDER BY s.last_name, gc.category_label, a.due_date;
-
--- ------------------------------------------------------------
---  Q6: INSERT – Add a new assignment
--- ------------------------------------------------------------
-INSERT INTO assignment (category_id, title, max_points, due_date)
-VALUES ('GC00000002', 'HW4 Transactions', 50, DATE '2026-04-18');
-
-COMMIT;
-
--- ------------------------------------------------------------
---  Q7: UPDATE – Correct a student score
--- ------------------------------------------------------------
+----- Fixing Spongebob's Grade -----
 UPDATE score
-SET    points_earned = 90
-WHERE  enrollment_id = 'E000000001'
-  AND  assignment_id = 'A000000006';
-
+SET points_earned = 95
+WHERE enrollment_id = 'E000000002' AND assignment_id = 'A000000003';
+  
 COMMIT;
 
--- ------------------------------------------------------------
---  Q8: UPDATE – Mark an assignment excused for a student
--- ------------------------------------------------------------
-UPDATE score
-SET    excused = 1
-WHERE  enrollment_id = 'E000000002'
-  AND  assignment_id = 'A000000003';
 
-COMMIT;
 
--- ------------------------------------------------------------
---  Q9: Verify category weights sum to 100 for all courses
--- ------------------------------------------------------------
+----- Verify category weights sum to 100 for all courses -----
 SELECT
     c.department || ' ' || c.course_number  AS course,
-    SUM(gc.weight_pct)                      AS total_weight,
+    SUM(gc.weight_pct) AS total_weight,
     CASE WHEN SUM(gc.weight_pct) = 100 THEN 'OK' ELSE 'ERROR' END AS status
 FROM grading_category gc
 JOIN course c ON c.course_id = gc.course_id
